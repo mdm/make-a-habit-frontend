@@ -1,0 +1,7 @@
+* checklist
+* manage
+  * list
+  * add/edit
+  * delete (modal)
+* settings
+

@@ -1,0 +1,119 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Make A Habit</title>
+  <link href="https://unpkg.com/primer/build/build.css" rel="stylesheet">
+  <link href="styles.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="bg-gray-dark">
+      <div class="container text-white">
+        <h1>Make A Habit</h1>
+      </div>
+  </div>
+  <div class="container">
+    <div class="tabnav">
+      <nav class="tabnav-tabs">
+        <a href="checklist.html" class="tabnav-tab">Checklist</a>
+        <a href="manage-list.html" class="tabnav-tab selected">Manage</a>
+        <a href="settings.html" class="tabnav-tab">Settings</a>
+      </nav>
+    </div>
+
+    <div class="Box">
+      <div class="Box-header">
+        <h3 class="Box-title">
+          Edit Habit
+        </h3>
+      </div>
+      <div class="Box-body">
+        <div>
+          <dl class="form-group">
+            <dt><label for="name">Name</label></dt>
+            <dd><input class="form-control" type="text" id="name"></dd>
+            <dd class="error" id="form-error-text">The name must not be empty.</dd>
+          </dl>
+        </div>
+        <div>
+          <dl class="form-group">
+            <dt><label for="description">Description</label></dt>
+            <dd><input class="form-control" type="text" id="description"></dd>
+          </dl>
+        </div>
+      </div>
+      <div class="Box-body">
+        <div>
+          <dl class="form-group">
+            <dt><label for="duration">Time for completion</label></dt>
+            <dd>
+              <select class="form-select" id="duration">
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+                <option>6</option>
+                <option>7</option>
+              </select>
+              day(s)
+            </dd>
+          </dl>
+        </div>
+      </div>
+      <div class="Box-body">
+        <strong>Repeats every week on</strong>
+        <div class="d-flex">
+          <div class="form-checkbox mr-2">
+            <label>
+              <input type="checkbox" checked="checked">
+              Monday
+            </label>
+          </div>
+          <div class="form-checkbox mr-2">
+            <label>
+              <input type="checkbox">
+              Tuesday
+            </label>
+          </div>
+          <div class="form-checkbox mr-2">
+            <label>
+              <input type="checkbox">
+              Wednesday
+            </label>
+          </div>
+          <div class="form-checkbox mr-2">
+            <label>
+              <input type="checkbox">
+              Thursday
+            </label>
+          </div>
+          <div class="form-checkbox mr-2">
+            <label>
+              <input type="checkbox">
+              Friday
+            </label>
+          </div>
+          <div class="form-checkbox mr-2">
+            <label>
+              <input type="checkbox">
+              Saturday
+            </label>
+          </div>
+          <div class="form-checkbox mr-2">
+            <label>
+              <input type="checkbox">
+              Sunday
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="Box-footer text-right">
+        <button type="button" class="btn btn-secondary mr-1" name="button">Cancel</button>
+        <button type="button" class="btn btn-primary" name="button">Submit</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

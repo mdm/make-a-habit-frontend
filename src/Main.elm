@@ -6,18 +6,18 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Url
 
-import Bootstrap.CDN as CDN
-import Bootstrap.Navbar as Navbar
-import Bootstrap.Grid as Grid
+import Page exposing (Page)
+import Page.Reminders as Reminders
+import Page.Habits as Habits
+import Page.Habits.Editor as Editor
 
 
 -- MODEL
 
-type alias Model =
-  { url : Url.Url
-  , key : Nav.Key
-  , navbarState : Navbar.State
-  }
+type Model
+  = Reminders Reminders.Model
+  | Habits Habits.Model
+  | Editor Editor.Model
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
