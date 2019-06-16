@@ -8,6 +8,7 @@ import Page exposing (Page)
 import Page.Habits as Habits
 import Page.Habits.Editor as Editor
 import Page.Reminders as Reminders
+import Session exposing (Session)
 import Url
 
 
@@ -16,43 +17,16 @@ import Url
 
 
 type Model
-    = Reminders Reminders.Model
+    = Redirect Session
+    | NotFound Session
+    | Reminders Reminders.Model
     | Habits Habits.Model
-    | Editor Editor.Model
+    | Editor (Maybe HabitId) Editor.Model
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    changeRouteTo (Route.fromUrl url)
-        (Redirect loggedOutSession)
-
-
-
--- UPDATE
-
-
-type Msg
-    = ClickedLink Browser.UrlRequest
-    | ChangedUrl Url.Url
-    | GotNavbarMsg Navbar.State
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    case msg of
-        ClickedLink urlRequest ->
-            case urlRequest of
-                Browser.Internal url ->
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
-
-                Browser.External href ->
-                    ( model, Nav.load href )
-
-        ChangedUrl url ->
-            ( { model | url = url }, Cmd.none )
-
-        GotNavbarMsg state ->
-            ( { model | navbarState = state }, Cmd.none )
+    changeRouteTo (Route.fromUrl url) (Redirect (Guest key))
 
 
 
@@ -86,6 +60,79 @@ viewContent =
 viewFooter : Html Msg
 viewFooter =
     text ""
+
+
+
+-- UPDATE
+
+
+type Msg
+    = ChangedRoute (Maybe Route)
+    | ChangedUrl Url.Url
+    | ClickedLink Browser.UrlRequest
+    | GotRemindersMsg Reminders.Msg
+    | GotHabitsMsg Habits.Msg
+    | GotEditorMsg Editor.Msg
+
+changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
+changeRouteTo maybeRoute model =
+    case maybeRoute of
+        Nothing ->
+            ( NotFound, Cmd.none )
+        Just Route.Reminders ->
+            Reminders.init
+                |> updateWith Reminders GotRemindersMsg model
+        Just Route.Habits ->
+            Habits.init
+                |> updateWith Habits GotHabitsMsg model
+        Just Route.NewHabit ->
+            Editor.initNew
+                |> updateWith (Editor Nothing) GotEditorMsg model
+        Just (Route.EditHabit habitId) ->
+            Editor.initEdit habitId
+                |> updateWith (Editor (Just habitId)) GotEditorMsg model
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case ( msg, model ) of
+        ( ClickedLink urlRequest, _ ) ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model
+                    , Nav.pushUrl (Session.navKey (toSession model)) (Url.toString url)
+                    )
+
+                Browser.External href ->
+                    ( model
+                    , Nav.load href
+                    )
+
+        ( ChangedUrl url, _ ) ->
+            changeRouteTo (Route.fromUrl url) model
+
+        ( ChangedRoute route, _ ) ->
+            changeRouteTo routemodel
+
+        ( GotRemindersMsg subMsg, Reminders reminders ) ->
+            Reminders.update subMsg reminders
+                |> updateWith Reminders GotRemindersMsg model
+
+        ( GotHabitsMsg subMsg, Habits habits ) ->
+            Habits.update subMsg habits
+                |> updateWith Habits GotHabitsMsg model
+
+        ( GotEditorMsg subMsg, Editor maybeHabitId editor ) ->
+            Editor.update subMsg editor
+                |> updateWith (Editor maybeHabitId) GotEditorMsg model
+
+        ( _, _ ) ->
+            ( model, Cmd.none )
+
+updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toModel toMsg model ( subModel, subCmd ) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
 
 
 

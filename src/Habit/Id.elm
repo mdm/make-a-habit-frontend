@@ -19,5 +19,5 @@ decoder =
 
 
 toString : HabitId -> String
-toString =
-    Debug.todo "Not yet implemented"
+toString (HabitId int) =
+    String.fromInt int
