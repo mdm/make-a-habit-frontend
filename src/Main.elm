@@ -35,31 +35,31 @@ init flags url key =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Make A Habit"
-    , body = CDN.stylesheet :: viewHeader model :: viewContent :: [ viewFooter ]
-    }
+    let
+        viewPage page toMsg config =
+            let
+                { title, body } =
+                    Page.view page config
+            in
+            { title = title
+            , body = List.map (Html.map toMsg) body
+            }
+    in
+    case model of
+        Redirect _ ->
+            Page.view Page.Other Blank.view
 
+        NotFound _ ->
+            Page.view Page.Other NotFound.view
 
-viewHeader : Model -> Html Msg
-viewHeader model =
-    Navbar.config GotNavbarMsg
-        --|> Navbar.withAnimation
-        |> Navbar.brand [ href "#" ] [ text "Brand" ]
-        |> Navbar.items
-            [ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
-            , Navbar.itemLink [ href "#" ] [ text "Item 2" ]
-            ]
-        |> Navbar.view model.navbarState
+        Reminders reminders ->
+            viewPage Page.Reminders GotRemindersMsg (Reminders.view reminders)
 
+        Habits habits ->
+            viewPage Page.Habits GotHabitsMsg (Habits.view habits)
 
-viewContent : Html Msg
-viewContent =
-    text ""
-
-
-viewFooter : Html Msg
-viewFooter =
-    text ""
+        Editor _ editor ->
+            viewPage Page.Habits GotEditorMsg (Editor.view editor)
 
 
 
