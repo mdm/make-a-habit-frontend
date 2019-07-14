@@ -4,10 +4,14 @@ import Browser
 import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Habit.Id exposing (HabitId)
 import Page exposing (Page)
 import Page.Habits as Habits
 import Page.Habits.Editor as Editor
 import Page.Reminders as Reminders
+import Page.Blank as Blank
+import Page.NotFound as NotFound
+import Route exposing (Route)
 import Session exposing (Session)
 import Url
 
@@ -26,7 +30,7 @@ type Model
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    changeRouteTo (Route.fromUrl url) (Redirect (Guest key))
+    changeRouteTo (Route.fromUrl url) (Redirect (Session.Guest key))
 
 
 
@@ -74,22 +78,44 @@ type Msg
     | GotHabitsMsg Habits.Msg
     | GotEditorMsg Editor.Msg
 
+toSession : Model -> Session
+toSession model =
+    case model of
+        Redirect session ->
+            session
+            
+        NotFound session ->
+            session
+
+        Reminders reminders ->
+            Reminders.toSession reminders
+
+        Habits habits ->
+            Habits.toSession habits
+
+        Editor _ editor ->
+            Editor.toSession editor
+
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
 changeRouteTo maybeRoute model =
+    let
+        session =
+            toSession model
+    in
     case maybeRoute of
         Nothing ->
-            ( NotFound, Cmd.none )
+            ( NotFound session, Cmd.none )
         Just Route.Reminders ->
-            Reminders.init
+            Reminders.init session
                 |> updateWith Reminders GotRemindersMsg model
         Just Route.Habits ->
-            Habits.init
+            Habits.init session
                 |> updateWith Habits GotHabitsMsg model
         Just Route.NewHabit ->
-            Editor.initNew
+            Editor.initNew session
                 |> updateWith (Editor Nothing) GotEditorMsg model
         Just (Route.EditHabit habitId) ->
-            Editor.initEdit habitId
+            Editor.initEdit session habitId
                 |> updateWith (Editor (Just habitId)) GotEditorMsg model
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -111,7 +137,7 @@ update msg model =
             changeRouteTo (Route.fromUrl url) model
 
         ( ChangedRoute route, _ ) ->
-            changeRouteTo routemodel
+            changeRouteTo route model
 
         ( GotRemindersMsg subMsg, Reminders reminders ) ->
             Reminders.update subMsg reminders
