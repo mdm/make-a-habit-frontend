@@ -57,4 +57,4 @@ routeToString page =
                 EditHabit habitId ->
                     [ "habits", HabitId.toString habitId ]
     in
-    "#/" ++ String.join "/" pieces
+    "/" ++ String.join "/" pieces

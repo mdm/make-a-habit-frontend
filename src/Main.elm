@@ -120,6 +120,10 @@ changeRouteTo maybeRoute model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        _ =
+            Debug.log "" msg
+    in
     case ( msg, model ) of
         ( ClickedLink urlRequest, _ ) ->
             case urlRequest of
