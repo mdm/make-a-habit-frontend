@@ -122,7 +122,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
         _ =
-            Debug.log "" msg
+            Debug.log "" msg  -- TODO: remove this
     in
     case ( msg, model ) of
         ( ClickedLink urlRequest, _ ) ->

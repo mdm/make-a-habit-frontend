@@ -42,7 +42,7 @@ view model =
                 "New Habit"
     , content =
         main_ [ id "content", class "container", tabindex -1 ]
-            [ h1 [] [ text "Not Found" ]
+            [ h1 [] [ text "Editing Habit" ]
             ]
     }
 
