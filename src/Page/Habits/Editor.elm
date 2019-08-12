@@ -2,6 +2,10 @@ module Page.Habits.Editor exposing (..)
 
 import Html exposing (Html, Attribute, a, button, dd, div, dl, dt, form, h3, input, label, main_, option, select, strong, text)
 import Html.Attributes exposing (checked, class, for, id, selected, tabindex, type_, value)
+import Html.Events exposing (onSubmit)
+import Http
+import Json.Decode as Decode
+import Json.Encode as Encode
 import Route
 import Session exposing (Session)
 import Habit.Id exposing (HabitId)
@@ -13,11 +17,15 @@ type alias Model =
 
 type Status
     = Loading HabitId
+    | LoadingFailed HabitId
     | Editing HabitId (List Problem) Form
+    | Saving HabitId Form
     | EditingNew (List Problem) Form
+    | Creating Form
 
 type Problem
-    = ServerError String
+    = InvalidEntry ValidatedField String
+    | ServerError String
 
 type alias Form =
     { name : String
@@ -71,7 +79,6 @@ view model =
 
                 EditingNew problems form ->
                     [ viewForm form problems (newHabitSaveButton []) ]
-
     in
     { title = title
     , content =
@@ -88,7 +95,7 @@ view model =
 
 viewForm : Form -> List Problem -> Html Msg -> Html Msg
 viewForm fields problems saveButton =
-    form []
+    form [ onSubmit ClickedSave ]
         [ dl [ class "form-group" ]
             [ dt []
                 [ label [ for "name" ] [ text "Name" ] ]
@@ -151,17 +158,156 @@ saveHabitButton caption extraAttrs =
 
 
 type Msg
-    = ClickedCancel
-    | ClickedSubmit
+    = ClickedSave
+    | CompletedCreate (Maybe Http.Error)
+    | CompletedEdit (Maybe Http.Error)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ClickedCancel ->
-            ( model, Cmd.none )
+        ClickedSave ->
+            model.status
+                |> save
+                |> Tuple.mapFirst (\status -> { model | status = status })
 
-        ClickedSubmit ->
-            ( model, Cmd.none )
+        CompletedCreate Nothing ->
+            ( model
+            , Route.replaceUrl (Session.navKey model.session) Route.Habits
+            )
+
+        CompletedCreate (Just error) ->
+            ( { model | status = savingError error model.status }
+            , Cmd.none
+            )
+
+        CompletedEdit Nothing ->
+            ( model
+            , Route.replaceUrl (Session.navKey model.session) Route.Habits
+            )
+
+        CompletedEdit (Just error) ->
+            ( { model | status = savingError error model.status }
+            , Cmd.none
+            )
+
+save : Status -> ( Status, Cmd Msg )
+save status =
+    case status of
+        Editing habitId _ form ->
+            case validate form of
+                Ok validForm ->
+                    ( Saving habitId form
+                    , edit habitId validForm
+                    )
+
+                Err problems ->
+                    ( Editing habitId problems form
+                    , Cmd.none
+                    )
+
+        EditingNew _ form ->
+            case validate form of
+                Ok validForm ->
+                    ( Creating form
+                    , create validForm
+                    )
+
+                Err problems ->
+                    ( EditingNew problems form
+                    , Cmd.none
+                    )
+
+        _ ->
+            Debug.todo "Trying to submit even though we are not editing."
+
+savingError : Http.Error -> Status -> Status
+savingError error status =
+    case status of
+        Saving habitId form ->
+            Editing habitId [ ServerError "Error saving habit" ] form
+            
+        Creating form ->
+            EditingNew [ ServerError "Error creating habit" ] form
+            
+        _ ->
+            status
+
+
+type TrimmedForm
+    = Trimmed Form
+
+type ValidatedField
+    = Name
+    | Description
+    | TimeLimit
+    | Recurrences
+
+fieldsToValidate : List ValidatedField
+fieldsToValidate =
+    [ Name
+    , Description
+    , Recurrences
+    ]
+
+validate : Form -> Result (List Problem) TrimmedForm
+validate form =
+    let
+        trimmedForm =
+            trimFields form    
+    in
+    case List.concatMap (validateField trimmedForm) fieldsToValidate of
+        [] ->
+            Ok trimmedForm
+        problems ->
+            Err problems
+
+validateField : TrimmedForm -> ValidatedField -> List Problem
+validateField (Trimmed form) field =
+    List.map (InvalidEntry field) <|
+        case field of
+            Name ->
+                if String.isEmpty form.name then
+                    [ "Name cannot be empty." ]
+                
+                else
+                    []
+
+            Description ->
+                if String.isEmpty form.description then
+                    [ "Description cannot be empty." ]
+                
+                else
+                    []
+
+            Recurrences ->
+                if List.isEmpty form.recurrences then
+                    [ "Habit must recur on at least one day." ]
+                
+                else
+                    []
+
+trimFields : Form -> TrimmedForm
+trimFields form =
+    Trimmed { form | name = String.trim form.name, description = String.trim form.description }
+
+
+create : TrimmedForm -> Cmd Msg
+create (Trimmed form) =
+    let
+        habit = -- TODO: avoid duplicating this code
+            Encode.object
+                [ ( "name", Encode.string form.name )
+                , ( "description", Encode.string form.description )
+                , ( "timeLimit", Encode.int form.timeLimit )
+                , ( "recurrences", Encode.list Encode.int form.recurrences )
+                ]
+        
+        body =
+            Encode.object [ ( "habit", habit ) ]
+                |> Http.jsonBody
+    in
+    Decode.field "habit" Habit.decoder
+        |> Api.post Endpoint.habits body
 
 toSession : Model -> Session
 toSession model =
