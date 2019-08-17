@@ -1,5 +1,6 @@
-module Habit exposing (Habit)
+module Habit exposing (Habit, decoder)
 
+import Habit.Id as HabitId exposing (HabitId)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (custom, required)
 import Time
@@ -8,7 +9,8 @@ import Iso8601
 type Habit = Habit Internals
 
 type alias Internals =
-    { name : String
+    { id : HabitId
+    , name : String
     , description : String
     , timeLimit : Int
     , recurrences : List Int
@@ -26,6 +28,7 @@ decoder =
 internalsDecoder : Decoder Internals
 internalsDecoder =
     Decode.succeed Internals
+        |> required "id" HabitId.decoder
         |> required "name" Decode.string
         |> required "description" Decode.string
         |> required "timeLimit" Decode.int

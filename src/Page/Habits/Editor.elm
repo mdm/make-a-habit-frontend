@@ -1,14 +1,17 @@
 module Page.Habits.Editor exposing (..)
 
 import Html exposing (Html, Attribute, a, button, dd, div, dl, dt, form, h3, input, label, main_, option, select, strong, text)
-import Html.Attributes exposing (checked, class, for, id, selected, tabindex, type_, value)
+import Html.Attributes exposing (checked, class, disabled, for, id, selected, tabindex, type_, value)
 import Html.Events exposing (onSubmit)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Route
 import Session exposing (Session)
-import Habit.Id exposing (HabitId)
+import Habit exposing (Habit)
+import Habit.Id as HabitId exposing (HabitId)
+import Api
+import Api.Endpoint as Endpoint
 
 type alias Model =
     { session : Session
@@ -74,11 +77,20 @@ view model =
                 Loading _ ->
                     []
 
+                Saving habitId form ->
+                    [ viewForm form [] (editHabitSaveButton [ disabled True ]) ]
+
+                Creating form ->
+                    [ viewForm form [] (newHabitSaveButton [ disabled True ]) ]
+
                 Editing habitId problems form ->
                     [ viewForm form problems (editHabitSaveButton []) ]
 
                 EditingNew problems form ->
                     [ viewForm form problems (newHabitSaveButton []) ]
+
+                LoadingFailed _ ->
+                    [ text "Habit failed to load." ]
     in
     { title = title
     , content =
@@ -159,8 +171,8 @@ saveHabitButton caption extraAttrs =
 
 type Msg
     = ClickedSave
-    | CompletedCreate (Maybe Http.Error)
-    | CompletedEdit (Maybe Http.Error)
+    | CompletedCreate (Result Http.Error Habit)
+    | CompletedEdit (Result Http.Error Habit)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -170,22 +182,22 @@ update msg model =
                 |> save
                 |> Tuple.mapFirst (\status -> { model | status = status })
 
-        CompletedCreate Nothing ->
+        CompletedCreate (Ok habit) -> -- TODO: share habit with global state
             ( model
             , Route.replaceUrl (Session.navKey model.session) Route.Habits
             )
 
-        CompletedCreate (Just error) ->
+        CompletedCreate (Err error) ->
             ( { model | status = savingError error model.status }
             , Cmd.none
             )
 
-        CompletedEdit Nothing ->
+        CompletedEdit (Ok habit) ->
             ( model
             , Route.replaceUrl (Session.navKey model.session) Route.Habits
             )
 
-        CompletedEdit (Just error) ->
+        CompletedEdit (Err error) ->
             ( { model | status = savingError error model.status }
             , Cmd.none
             )
@@ -246,6 +258,7 @@ fieldsToValidate : List ValidatedField
 fieldsToValidate =
     [ Name
     , Description
+    , TimeLimit
     , Recurrences
     ]
 
@@ -279,6 +292,9 @@ validateField (Trimmed form) field =
                 else
                     []
 
+            TimeLimit ->
+                [] -- don't validate
+
             Recurrences ->
                 if List.isEmpty form.recurrences then
                     [ "Habit must recur on at least one day." ]
@@ -290,6 +306,24 @@ trimFields : Form -> TrimmedForm
 trimFields form =
     Trimmed { form | name = String.trim form.name, description = String.trim form.description }
 
+
+edit : HabitId -> TrimmedForm -> Cmd Msg
+edit habitId (Trimmed form) =
+    let
+        habit = -- TODO: avoid duplicating this code
+            Encode.object
+                [ ( "name", Encode.string form.name )
+                , ( "description", Encode.string form.description )
+                , ( "timeLimit", Encode.int form.timeLimit )
+                , ( "recurrences", Encode.list Encode.int form.recurrences )
+                ]
+        
+        body =
+            Encode.object [ ( "habit", habit ) ]
+                |> Http.jsonBody
+    in
+    Decode.field "habit" Habit.decoder
+        |> Api.put CompletedCreate (Endpoint.habit habitId) body
 
 create : TrimmedForm -> Cmd Msg
 create (Trimmed form) =
@@ -307,7 +341,7 @@ create (Trimmed form) =
                 |> Http.jsonBody
     in
     Decode.field "habit" Habit.decoder
-        |> Api.post Endpoint.habits body
+        |> Api.post CompletedCreate Endpoint.habits body
 
 toSession : Model -> Session
 toSession model =
@@ -318,7 +352,18 @@ getHabitId status =
     case status of
         Loading habitId ->
             Just habitId
+
+        LoadingFailed habitId ->
+            Just habitId
+
+        Saving habitId _ ->
+            Just habitId
+
         Editing habitId _ _ ->
             Just habitId
+
+        Creating _ ->
+            Nothing
+
         EditingNew _ _ ->
             Nothing
