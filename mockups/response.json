@@ -3,9 +3,9 @@
         "id" : 1,
         "name" : "Name",
         "description" : "Description",
+        "start" : "2019-08-17T16:08:16Z",
         "timeLimit" : 4,
         "recurrences" : [1, 2, 3],
-        "nextDue" : "2019-08-17T16:08:16Z",
         "doneCount" : 100,
         "streakCurrent" : 100,
         "streakMax" : 100

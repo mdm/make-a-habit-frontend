@@ -12,9 +12,9 @@ type alias Internals =
     { id : HabitId
     , name : String
     , description : String
+    , start : Time.Posix
     , timeLimit : Int
     , recurrences : List Int
-    , nextDue : Time.Posix
     , doneCount : Int
     , streakCurrent : Int
     , streakMax : Int
@@ -31,9 +31,9 @@ internalsDecoder =
         |> required "id" HabitId.decoder
         |> required "name" Decode.string
         |> required "description" Decode.string
-        |> required "timeLimit" Decode.int
+        |> required "start" Iso8601.decoder
+        |> required "time_limit" Decode.int
         |> required "recurrences" (Decode.list Decode.int)
-        |> required "nextDue" Iso8601.decoder
-        |> required "doneCount" Decode.int
-        |> required "streakCurrent" Decode.int
-        |> required "streakMax" Decode.int
+        |> required "done_count" Decode.int
+        |> required "streak_current" Decode.int
+        |> required "streak_max" Decode.int

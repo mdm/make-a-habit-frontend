@@ -35,8 +35,8 @@ unwrap (Endpoint str) =
 
 url : List String -> List QueryParameter -> Endpoint
 url paths queryParams =
-    Url.Builder.crossOrigin "https://www.mocky.io"
-        ("v2" :: "5d5838d02f0000126454553c" :: paths)
+    Url.Builder.crossOrigin "http://localhost:4200"
+        paths
         queryParams
         |> Endpoint
 
