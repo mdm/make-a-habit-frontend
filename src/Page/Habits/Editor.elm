@@ -314,16 +314,14 @@ edit habitId (Trimmed form) =
             Encode.object
                 [ ( "name", Encode.string form.name )
                 , ( "description", Encode.string form.description )
-                , ( "timeLimit", Encode.int form.timeLimit )
+                , ( "time_limit", Encode.int form.timeLimit )
                 , ( "recurrences", Encode.list Encode.int form.recurrences )
                 ]
         
         body =
-            Encode.object [ ( "habit", habit ) ]
-                |> Http.jsonBody
+            Http.jsonBody habit
     in
-    Decode.field "habit" Habit.decoder
-        |> Api.put CompletedCreate (Endpoint.habit habitId) body
+    Api.put CompletedCreate (Endpoint.habit habitId) body Habit.decoder
 
 create : TrimmedForm -> Cmd Msg
 create (Trimmed form) =
@@ -332,16 +330,14 @@ create (Trimmed form) =
             Encode.object
                 [ ( "name", Encode.string form.name )
                 , ( "description", Encode.string form.description )
-                , ( "timeLimit", Encode.int form.timeLimit )
+                , ( "time_limit", Encode.int form.timeLimit )
                 , ( "recurrences", Encode.list Encode.int form.recurrences )
                 ]
         
         body =
-            Encode.object [ ( "habit", habit ) ]
-                |> Http.jsonBody
+            Http.jsonBody habit
     in
-    Decode.field "habit" Habit.decoder
-        |> Api.post CompletedCreate Endpoint.habits body
+    Api.post CompletedCreate Endpoint.habits body Habit.decoder
 
 toSession : Model -> Session
 toSession model =

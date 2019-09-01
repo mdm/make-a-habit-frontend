@@ -8,7 +8,7 @@ from http import server
 from urllib import parse
 import socketserver
 
-PORT = 4200
+PORT = 3000
 INDEXFILE = 'index.html'
 
 
