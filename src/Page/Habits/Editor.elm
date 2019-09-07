@@ -2,7 +2,7 @@ module Page.Habits.Editor exposing (..)
 
 import Html exposing (Html, Attribute, a, button, dd, div, dl, dt, form, h3, input, label, main_, option, select, strong, text)
 import Html.Attributes exposing (checked, class, disabled, for, id, selected, tabindex, type_, value)
-import Html.Events exposing (onSubmit)
+import Html.Events exposing (onCheck, onInput, onSubmit)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -44,10 +44,10 @@ initNew session =
     ( { session = session
       , status =
             EditingNew []
-                { name = "Test"
-                , description = "Bla bla"
-                , timeLimit = 3
-                , recurrences = [3, 5]
+                { name = ""
+                , description = ""
+                , timeLimit = 1
+                , recurrences = []
                 }
       }
     , Cmd.none
@@ -112,19 +112,19 @@ viewForm fields problems saveButton =
             [ dt []
                 [ label [ for "name" ] [ text "Name" ] ]
             , dd []
-                [ input [ class "form-control", type_ "text", id "name", value fields.name ] [] ]
+                [ input [ class "form-control", type_ "text", id "name", value fields.name, onInput EnteredName ] [] ]
             ]
         , dl [ class "form-group" ]
             [ dt []
                 [ label [ for "description" ] [ text "Description" ] ]
             , dd []
-                [ input [ class "form-control", type_ "text", id "description", value fields.description ] [] ]
+                [ input [ class "form-control", type_ "text", id "description", value fields.description, onInput EnteredDescription ] [] ]
             ]
         , dl [ class "form-group" ]
             [ dt []
                 [ label [ for "time-limit" ] [ text "Time limit for completion" ] ]
             , dd []
-                [ select [ class "form-select", id "time-limit"]
+                [ select [ class "form-select", id "time-limit", onInput SelectedTimeLimit ]
                     (List.range 1 7 |> List.map (viewTimeLimit fields.timeLimit))
                 ]
             ]
@@ -151,7 +151,7 @@ viewRecurrence : List Int -> Int -> String -> Html Msg
 viewRecurrence checkedRecurrences dayIndex dayName =
     div [ class "form-checkbox" ]
         [ label []
-            [ input [ type_ "checkbox", id <| String.toLower dayName, checked (List.member dayIndex checkedRecurrences) ] []
+            [ input [ type_ "checkbox", id <| String.toLower dayName, checked (List.member dayIndex checkedRecurrences), onCheck <| CheckedRecurrence dayIndex ] []
             , text dayName
             ]
         ]
@@ -171,6 +171,10 @@ saveHabitButton caption extraAttrs =
 
 type Msg
     = ClickedSave
+    | EnteredName String
+    | EnteredDescription String
+    | SelectedTimeLimit String
+    | CheckedRecurrence Int Bool
     | CompletedCreate (Result Http.Error Habit)
     | CompletedEdit (Result Http.Error Habit)
 
@@ -181,6 +185,21 @@ update msg model =
             model.status
                 |> save
                 |> Tuple.mapFirst (\status -> { model | status = status })
+
+        EnteredName name ->
+            updateForm (\form -> { form | name = name }) model
+
+        EnteredDescription description ->
+            updateForm (\form -> { form | description = description }) model
+
+        SelectedTimeLimit timeLimit ->
+            updateForm (\form -> { form | timeLimit = Maybe.withDefault 1 (String.toInt timeLimit) }) model
+
+        CheckedRecurrence dayIndex checked ->
+            if checked then
+                updateForm (\form -> { form | recurrences = dayIndex :: form.recurrences }) model
+            else
+                updateForm (\form -> { form | recurrences = List.filter (\recurrence -> recurrence /= dayIndex) form.recurrences }) model
 
         CompletedCreate (Ok habit) -> -- TODO: share habit with global state
             ( model
@@ -243,6 +262,31 @@ savingError error status =
             
         _ ->
             status
+
+updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
+updateForm transform model =
+    let
+        newModel =
+            case model.status of
+                Loading _ ->
+                    model
+
+                LoadingFailed _ ->
+                    model
+
+                Creating form ->
+                    { model | status = Creating (transform form) }
+
+                Saving habitId form ->
+                    { model | status = Saving habitId (transform form) }
+
+                EditingNew errors form ->
+                    { model | status = EditingNew errors (transform form) }
+
+                Editing habitId errors form ->
+                    { model | status = Editing habitId errors (transform form) }
+    in
+    ( newModel, Cmd.none )
 
 
 type TrimmedForm
