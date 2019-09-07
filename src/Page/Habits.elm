@@ -1,12 +1,13 @@
 module Page.Habits exposing (..)
 
-import Html exposing (Html, a, button, div, h3, main_, text)
+import Html exposing (Html, a, button, div, h2, h3, main_, text)
 import Html.Attributes exposing (class, id, tabindex, type_)
 import Habit exposing (Habit)
 import Habit.Id exposing (HabitId)
 import Route
 import Session exposing (Session)
 import Http
+import Dict
 
 type alias Model =
     { session : Session
@@ -66,13 +67,48 @@ viewHabit : Habit -> Html msg
 viewHabit habit =
     div [ class "Box-body d-flex flex-items-center" ]
         [ div [ class "flex-auto" ]
-            [ text <| Maybe.withDefault "" (Habit.description habit)
-            , div [ class "text-small text-gray-light" ] [ text "Repeats weekly on Saturday" ]
-            , div [ class "text-small text-gray-light" ] [ text "Must be completed within two days." ]
+            [ h2 [] [ text <| Habit.name habit ]
+            , text <| Maybe.withDefault "" (Habit.description habit)
+            , div [ class "text-small text-gray-light" ] [ text <| "Repeats weekly on " ++ viewRecurrences habit ++ "." ]
+            , div [ class "text-small text-gray-light" ] [ text <| "Must be completed within " ++ viewTimeLimit habit ++ "." ]
             ]
         , button [ type_ "button", class "btn mr-1" ] [ text "Edit" ]
         , button [ type_ "button", class "btn btn-danger" ] [ text "Delete" ]
         ]
+
+viewRecurrences : Habit -> String
+viewRecurrences habit =
+    let
+        days = [ "Monday", "Tueday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ]
+            |> List.indexedMap Tuple.pair
+            |> Dict.fromList
+        exists maybe = 
+            case maybe of
+                Just _ ->
+                    True
+                Nothing ->
+                    False
+        recurrences = Habit.recurrences habit
+            |> List.sort
+            |> List.map (\recurrence -> Dict.get recurrence days)
+            |> List.filter exists
+            |> List.map (Maybe.withDefault "")
+        numRecurrences = List.length recurrences
+    in
+    if numRecurrences == 1 then
+        Maybe.withDefault "" <| List.head recurrences
+    else
+        String.join ", " (List.take (numRecurrences - 2) recurrences) ++ String.join " and " (List.drop (numRecurrences - 2) recurrences)
+    
+viewTimeLimit : Habit -> String
+viewTimeLimit habit =
+    let
+        timeLimit = Habit.timeLimit habit
+    in
+    if timeLimit == 1 then
+        "1 day"
+    else
+        String.fromInt timeLimit ++ " days"
 
 
 type Msg
