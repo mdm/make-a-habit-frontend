@@ -72,7 +72,7 @@ viewHabit habit =
             , div [ class "text-small text-gray-light" ] [ text <| "Repeats weekly on " ++ viewRecurrences habit ++ "." ]
             , div [ class "text-small text-gray-light" ] [ text <| "Must be completed within " ++ viewTimeLimit habit ++ "." ]
             ]
-        , button [ type_ "button", class "btn mr-1" ] [ text "Edit" ]
+        , a [ class "btn mr-1", Route.href (Route.EditHabit (Habit.id habit)) ] [ text "Edit" ]
         , button [ type_ "button", class "btn btn-danger" ] [ text "Delete" ]
         ]
 

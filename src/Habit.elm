@@ -1,4 +1,4 @@
-module Habit exposing (Habit, id, name, description, start, timeLimit, recurrences, doneCount, streakCurrent, streakMax, decoder, list)
+module Habit exposing (Habit, id, name, description, start, timeLimit, recurrences, doneCount, streakCurrent, streakMax, decoder, fetch, list)
 
 import Habit.Id as HabitId exposing (HabitId)
 import Json.Decode as Decode exposing (Decoder)
@@ -63,6 +63,10 @@ list : (Result Http.Error (List Habit) -> msg) -> Cmd msg
 list toMsg =
     Decode.list decoder
         |> Api.get toMsg Endpoint.habits
+
+fetch : (Result Http.Error Habit -> msg) -> HabitId -> Cmd msg
+fetch toMsg habitId =
+    Api.get toMsg (Endpoint.habit habitId) decoder
 
 decoder : Decoder Habit
 decoder =

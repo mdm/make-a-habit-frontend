@@ -20,7 +20,7 @@ type alias Model =
 
 type Status
     = Loading HabitId
-    | LoadingFailed HabitId
+    | LoadingFailed
     | Editing HabitId (List Problem) Form
     | Saving HabitId Form
     | EditingNew (List Problem) Form
@@ -59,19 +59,17 @@ initEdit session habitId =
     ( { session = session
       , status = Loading habitId
       }
-    , Cmd.none  -- TODO: load habit
+    , Habit.fetch CompletedHabitLoad habitId
     )
 
 view : Model -> { title : String, content : Html Msg }
 view model =
     let
         title =
-            case getHabitId model.status of
-                Just _ ->
-                    "Edit Habit"
-
-                Nothing ->
-                    "New Habit"
+            if habitExists model.status then
+                "Edit Habit"
+            else
+                "New Habit"
         formHtml =
             case model.status of
                 Loading _ ->
@@ -89,7 +87,7 @@ view model =
                 EditingNew problems form ->
                     [ viewForm form problems (newHabitSaveButton []) ]
 
-                LoadingFailed _ ->
+                LoadingFailed ->
                     [ text "Habit failed to load." ]
     in
     { title = title
@@ -177,6 +175,7 @@ type Msg
     | CheckedRecurrence Int Bool
     | CompletedCreate (Result Http.Error Habit)
     | CompletedEdit (Result Http.Error Habit)
+    | CompletedHabitLoad (Result Http.Error Habit)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -218,6 +217,26 @@ update msg model =
 
         CompletedEdit (Err error) ->
             ( { model | status = savingError error model.status }
+            , Cmd.none
+            )
+
+        CompletedHabitLoad (Ok habit) ->
+            let
+                status =
+                    Editing (Habit.id habit)
+                        []
+                        { name = Habit.name habit
+                        , description = Maybe.withDefault "" <| Habit.description habit
+                        , timeLimit = Habit.timeLimit habit
+                        , recurrences = Habit.recurrences habit
+                        }
+            in
+            ( { model | status = status }
+            , Cmd.none
+            )
+
+        CompletedHabitLoad (Err error) ->
+            ( { model | status = LoadingFailed }
             , Cmd.none
             )
 
@@ -271,7 +290,7 @@ updateForm transform model =
                 Loading _ ->
                     model
 
-                LoadingFailed _ ->
+                LoadingFailed ->
                     model
 
                 Creating form ->
@@ -387,23 +406,23 @@ toSession : Model -> Session
 toSession model =
     model.session
 
-getHabitId : Status -> Maybe HabitId
-getHabitId status =
+habitExists : Status -> Bool
+habitExists status =
     case status of
-        Loading habitId ->
-            Just habitId
+        Loading _ ->
+            True
 
-        LoadingFailed habitId ->
-            Just habitId
+        LoadingFailed ->
+            True
 
-        Saving habitId _ ->
-            Just habitId
+        Saving _ _ ->
+            True
 
-        Editing habitId _ _ ->
-            Just habitId
+        Editing _ _ _ ->
+            True
 
         Creating _ ->
-            Nothing
+            False
 
         EditingNew _ _ ->
-            Nothing
+            False
