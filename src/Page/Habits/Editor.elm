@@ -128,7 +128,7 @@ viewForm fields problems saveButton =
             ]
         , div [] <|
             strong [] [ text "Repeats every week on" ]
-            :: List.indexedMap (viewRecurrence fields.recurrences) [ "Monday", "Tueday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ]
+            :: List.indexedMap (viewRecurrence fields.recurrences) [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ]
         , div [ class "form-actions" ]
             [ saveButton
             , a [ class "btn", Route.href Route.Habits] [ text "Cancel" ]

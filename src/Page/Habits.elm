@@ -79,7 +79,7 @@ viewHabit habit =
 viewRecurrences : Habit -> String
 viewRecurrences habit =
     let
-        days = [ "Monday", "Tueday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ]
+        days = [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ]
             |> List.indexedMap Tuple.pair
             |> Dict.fromList
         exists maybe = 
@@ -98,7 +98,7 @@ viewRecurrences habit =
     if numRecurrences == 1 then
         Maybe.withDefault "" <| List.head recurrences
     else
-        String.join ", " (List.take (numRecurrences - 2) recurrences) ++ String.join " and " (List.drop (numRecurrences - 2) recurrences)
+        String.join ", " (List.take (numRecurrences - 1) recurrences) ++ " and " ++ Maybe.withDefault "" (List.head (List.drop (numRecurrences - 1) recurrences))
     
 viewTimeLimit : Habit -> String
 viewTimeLimit habit =
